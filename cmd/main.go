@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base32"
 	"fmt"
@@ -11,11 +12,7 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type game struct {
-	players []player
-	state   int
-	channel chan string
-}
+const MAX_PLAYERS = 2
 
 var (
 	games   = make(map[string]*game)
@@ -55,8 +52,8 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 	gamesMu.Lock()
 
 	games[id] = &game{
-		players: make([]player, 0, 2),
-		channel: make(chan string),
+		players: make([]player, 0, MAX_PLAYERS),
+		id:      id,
 	}
 
 	gamesMu.Unlock()
@@ -77,42 +74,28 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(game.players) >= 2 {
+	if len(game.players) >= MAX_PLAYERS {
 		errorResponse(w, http.StatusNotAcceptable, fmt.Errorf("there are already two players in this game"))
 		return
 	}
 
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		w.Write([]byte("server error"))
+		errorResponse(w, http.StatusInternalServerError, fmt.Errorf("cloud not upgrade connection"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer ws.Close(websocket.StatusInternalError, "server error")
 
-	p := player{conn: ws}
+	ctx := context.Background()
+
+	p := player{conn: ws, channel: make(chan string), ctx: ctx}
 
 	game.players = append(game.players, p)
 	fmt.Println(game.players, len(game.players), cap(game.players))
-	// this finds and removes player from slice when it disconnects
-	defer func() {
-		for i := range game.players {
-			if game.players[i] == p {
-				game.players = append(game.players[:i], game.players[i+1:]...)
-				fmt.Println(game.players, len(game.players), cap(game.players))
-				return
-			}
-		}
-		panic("player not found in slice")
-	}()
 
-    // TODO: how to do this?
-	go p.playerHandler(game, r)
-
-	if len(game.players) == 2 {
-		// TODO: start the game
-		game.channel <- "let the game begin"
+	if len(game.players) == MAX_PLAYERS {
+		go game.start()
 	} else {
-		game.channel <- "waiting for second player"
+		p.send("waiting for other player")
 	}
 }
