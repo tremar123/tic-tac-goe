@@ -16,3 +16,7 @@ audit:
 	@echo "Vetting code..."
 	go vet ./...
 	staticcheck ./...
+
+.PHONY: build
+build:
+	go build -ldflags="-s" -o=.bin/app ./cmd/
