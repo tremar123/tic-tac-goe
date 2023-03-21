@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"nhooyr.io/websocket"
@@ -17,6 +18,9 @@ const MAX_PLAYERS = 2
 var (
 	games   = make(map[string]*game)
 	gamesMu = sync.Mutex{}
+
+	infoLog  = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
 func main() {
@@ -25,19 +29,24 @@ func main() {
 	router.HandleFunc("/new-game", newGameHandler)
 	router.HandleFunc("/ws", wsHandler)
 
-	log.Println("starting server on port 4000")
+	infoLog.Println("starting server on port 4000")
 	err := http.ListenAndServe(":4000", router)
 	if err != nil {
-		log.Println("error starting server")
+		infoLog.Println("error starting server")
 	}
 }
 
-// TODO: make this post only
 func newGameHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		errorResponse(w, http.StatusMethodNotAllowed, fmt.Errorf("method not allowed"))
+		return
+	}
+
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		errorResponse(w, http.StatusInternalServerError, err)
+		serverErrorResponse(w, err)
 		return
 	}
 
@@ -60,7 +69,7 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = writeJSON(w, http.StatusCreated, envelope{"game_id": id}, nil)
 	if err != nil {
-		errorResponse(w, http.StatusInternalServerError, err)
+		serverErrorResponse(w, err)
 	}
 }
 
@@ -81,8 +90,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		errorResponse(w, http.StatusInternalServerError, fmt.Errorf("cloud not upgrade connection"))
-		w.WriteHeader(http.StatusInternalServerError)
+		serverErrorResponse(w, fmt.Errorf("cloud not upgrade connection"))
 		return
 	}
 
@@ -91,11 +99,10 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	p := player{conn: ws, channel: make(chan string), ctx: ctx}
 
 	game.players = append(game.players, p)
-	fmt.Println(game.players, len(game.players), cap(game.players))
 
 	if len(game.players) == MAX_PLAYERS {
 		go game.start()
 	} else {
-		p.send("waiting for other player")
+		p.send(JsonMessage{Message: "waiting for other player", Typ: InfoMessage})
 	}
 }

@@ -2,16 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
 func errorResponse(w http.ResponseWriter, status int, message error) {
-    log.Printf("error: %q",  message.Error())
 	err := writeJSON(w, status, envelope{"error": message}, nil)
 	if err != nil {
-		log.Println("error sending response")
+		errorLog.Println("error sending response")
 	}
+}
+
+func serverErrorResponse(w http.ResponseWriter, message error) {
+	errorLog.Println(message.Error())
+	errorResponse(w, http.StatusInternalServerError, message)
 }
 
 type envelope map[string]any
