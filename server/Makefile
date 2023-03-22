@@ -19,4 +19,4 @@ audit:
 
 .PHONY: build
 build:
-	go build -ldflags="-s" -o=.bin/app ./cmd/
+	go build -ldflags="-s" -o=./bin/app ./cmd/
