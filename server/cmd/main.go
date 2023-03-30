@@ -26,8 +26,8 @@ var (
 func main() {
 	router := http.NewServeMux()
 
-	router.HandleFunc("/new-game", newGameHandler)
-	router.HandleFunc("/ws", wsHandler)
+	router.Handle("/new-game", CORS(newGameHandler))
+	router.Handle("/ws", CORS(wsHandler))
 
 	infoLog.Println("starting server on port 4000")
 	err := http.ListenAndServe(":4000", router)
@@ -105,4 +105,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p.send(JsonMessage{Message: "waiting for other player", Typ: InfoMessage})
 	}
+}
+
+func CORS(next http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
 }

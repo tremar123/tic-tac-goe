@@ -24,7 +24,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <DarkModeSwitch className="absolute right-5 top-5 text-black dark:text-white" />
-      {gameId === null ? <WelcomePage ws={ws} /> : <GamePage />}
+      {gameId === null ? <WelcomePage setGame={setGameId} /> : <GamePage />}
     </ThemeProvider>
   );
 }
@@ -42,7 +42,7 @@ function DarkModeSwitch(
     <button
       onClick={handleThemeChange}
       className={
-        "rounded-xl border-2 border-sky-900 p-2 dark:bg-blue-950  dark:hover:bg-slate-900 " +
+        "rounded-xl border-2 border-sky-900 p-2 dark:bg-slate-900  dark:hover:bg-slate-900 " +
         props.className
       }
     >

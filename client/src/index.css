@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.line-mask {
+  mask-image: linear-gradient(to left, transparent, black, transparent);
+}
