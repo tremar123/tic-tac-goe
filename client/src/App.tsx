@@ -1,30 +1,22 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { GamePage } from "./Game";
-import { connectWebsocket, disconnectWebsocket } from "./websocket";
 import { WelcomePage } from "./WelcomePage";
 import { BsMoonFill, BsSunFill } from "react-icons/bs";
 import { ThemeContext, ThemeProvider } from "./ThemeContext";
 
 export default function App() {
   const [gameId, setGameId] = useState<string | null>(null);
-  const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("game_id");
-    if (id !== null) {
-      connectWebsocket(id, ws);
-    }
     setGameId(id);
-    return () => {
-      disconnectWebsocket(ws);
-    };
   }, []);
 
   return (
     <ThemeProvider>
       <DarkModeSwitch className="absolute right-5 top-5 text-black dark:text-white" />
-      {gameId === null ? <WelcomePage setGame={setGameId} /> : <GamePage />}
+      {gameId === null ? <WelcomePage setGame={setGameId} /> : <GamePage gameId={gameId} />}
     </ThemeProvider>
   );
 }
@@ -42,7 +34,7 @@ function DarkModeSwitch(
     <button
       onClick={handleThemeChange}
       className={
-        "rounded-xl border-2 border-sky-900 p-2 dark:bg-slate-900  dark:hover:bg-slate-900 " +
+        "rounded-xl border-2 border-sky-900 p-2 dark:bg-slate-900  dark:hover:bg-slate-900 bg-sky-300 " +
         props.className
       }
     >

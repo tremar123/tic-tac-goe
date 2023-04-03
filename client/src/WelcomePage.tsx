@@ -7,6 +7,7 @@ export function WelcomePage({
 }) {
   const [gameId, setGameId] = useState<string | null>(null);
   const [gameIdInput, setGameIdInput] = useState("");
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   function createGameHandler() {
     fetch("http://localhost:4000/new-game", {
@@ -29,7 +30,24 @@ export function WelcomePage({
   return (
     <main className="flex h-screen flex-col items-center justify-center gap-12">
       {gameId ? (
-        <p className="dark:text-white">{gameId}</p>
+        <div>
+          <span className="mb-4 block dark:text-white">
+            http://localhost:3000/?game_id=
+            <span className="text-blue-600">{gameId}</span>
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(
+                "http://localhost:3000/?game_id=" + gameId
+              );
+              setCopiedToClipboard(true);
+              setTimeout(() => setCopiedToClipboard(false), 1000);
+            }}
+            className="mx-auto block rounded-xl border-2 border-sky-900 bg-sky-300 p-1  dark:bg-slate-900 dark:text-white dark:hover:bg-slate-900"
+          >
+            {copiedToClipboard ? "Copied" : "Copy to clipboard"}
+          </button>
+        </div>
       ) : (
         <>
           <Button onClick={createGameHandler}>Create new game</Button>

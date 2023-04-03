@@ -88,9 +88,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, nil)
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+        OriginPatterns: []string{"localhost:3000"},
+    })
 	if err != nil {
-		serverErrorResponse(w, fmt.Errorf("cloud not upgrade connection"))
+		serverErrorResponse(w, fmt.Errorf("could not upgrade connection"))
 		return
 	}
 
