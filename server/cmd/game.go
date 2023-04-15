@@ -20,7 +20,7 @@ func (g *game) start() {
 		"", "", "",
 		"", "", ""}
 
-	err := g.messageAllPlayers(JsonMessage{Message: "Get ready!", Typ: InfoMessage})
+	err := g.messageAllPlayers(JsonMessage{Message: "Get ready!", Typ: GetReadyMessage})
 	if err != nil {
 		// TODO
 	}
@@ -68,11 +68,11 @@ func (g *game) start() {
 	g.players[waiting].symbol = "O"
 
 	for {
-		err := g.players[playing].send(JsonMessage{Message: "Your turn", Typ: PlayMessage})
+		err := g.players[playing].send(JsonMessage{Message: "Your turn", Typ: TurnMessage})
 		if err != nil {
 			// TODO
 		}
-		err = g.players[waiting].send(JsonMessage{Message: "Other player's turn", Typ: PlayMessage})
+		err = g.players[waiting].send(JsonMessage{Message: "Other player's turn", Typ: TurnMessage})
 		if err != nil {
 			// TODO
 		}
@@ -105,16 +105,16 @@ func (g *game) start() {
 		end, winner := g.checkGameEnd(playing)
 		if end {
 			if winner {
-				err = g.players[playing].send(JsonMessage{Message: "You won", Typ: InfoMessage})
+				err = g.players[playing].send(JsonMessage{Message: "You won", Typ: ResultMessage})
 				if err != nil {
 					// TODO
 				}
-				err = g.players[waiting].send(JsonMessage{Message: "You lost", Typ: InfoMessage})
+				err = g.players[waiting].send(JsonMessage{Message: "You lost", Typ: ResultMessage})
 				if err != nil {
 					// TODO
 				}
 			} else {
-				err = g.messageAllPlayers(JsonMessage{Message: "Draw", Typ: InfoMessage})
+				err = g.messageAllPlayers(JsonMessage{Message: "Draw", Typ: ResultMessage})
 				if err != nil {
 					// TODO
 				}

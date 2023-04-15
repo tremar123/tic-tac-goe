@@ -1,0 +1,5 @@
+.dockerignore
+client.sh
+Dockerfile
+*.png
+bin/
