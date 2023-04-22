@@ -34,7 +34,7 @@ function DarkModeSwitch(
     <button
       onClick={handleThemeChange}
       className={
-        "rounded-xl border-2 border-sky-900 p-2 dark:bg-slate-900  dark:hover:bg-slate-900 bg-sky-300 " +
+        "rounded-xl border-2 border-sky-900 p-2 dark:bg-slate-900  dark:hover:bg-slate-900 bg-sky-300 z-10 " +
         props.className
       }
     >
