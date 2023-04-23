@@ -32,7 +32,7 @@ func main() {
 	infoLog.Println("starting server on port 4000")
 	err := http.ListenAndServe(":4000", router)
 	if err != nil {
-		infoLog.Println("error starting server")
+		errorLog.Println(err)
 	}
 }
 
@@ -71,6 +71,8 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		serverErrorResponse(w, err)
 	}
+
+	infoLog.Println("New game created - ", id)
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,8 +91,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-        OriginPatterns: []string{"localhost:3000"},
-    })
+		OriginPatterns: []string{"localhost:3000"},
+	})
 	if err != nil {
 		serverErrorResponse(w, fmt.Errorf("could not upgrade connection"))
 		return
@@ -102,8 +104,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	game.players = append(game.players, p)
 
+	infoLog.Printf("Player %v joined game - %v", len(game.players), game.id)
+
 	if len(game.players) == MAX_PLAYERS {
 		go game.start()
+		infoLog.Printf("Game %v started", game.id)
 	} else {
 		p.send(JsonMessage{Message: "waiting for other player", Typ: InfoMessage})
 	}

@@ -36,14 +36,20 @@ export function GamePage({
           break;
 
         case "turn":
-          // TODO: whose turn?
           // @ts-ignore
           setPlayingPlayer(data.message);
-          if (modal) setModal(null);
+
+          // BUG: why is this always null?
+          console.log("modal:", modal);
+          // if game did not start yet
+          if (modal) {
+            setModal(null);
+            setBoard(Array(9).fill(""));
+          }
           break;
 
         case "board":
-          // TODO: update board
+          setBoard(JSON.parse(data.message));
           break;
 
         case "result":
@@ -65,10 +71,23 @@ export function GamePage({
   }, [gameId]);
 
   function readyHandler() {
-    console.log(ws.current)
-    ws.current?.send("Ready");
+    console.log(ws.current);
+    ws.current?.send(
+      JSON.stringify({
+        message: "Ready",
+      })
+    );
+    console.log(modal);
     setModal("Waiting for other player to get ready");
     setReadyButton(false);
+  }
+
+  function playHandler(index: number) {
+    ws.current?.send(
+      JSON.stringify({
+        message: index,
+      })
+    );
   }
 
   return (
@@ -90,6 +109,13 @@ export function GamePage({
         <ErrorsList errors={errors} setErrors={setErrors} />
       )}
       <h1 className="text-white">{playingPlayer}</h1>
+      {board && (
+        <Board
+          board={board}
+          playHandler={playHandler}
+          playingPlayer={playingPlayer!}
+        />
+      )}
     </>
   );
 }
@@ -99,7 +125,7 @@ function ErrorsList(props: {
   setErrors: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
   return createPortal(
-    <div className="absolute bottom-5 right-5 flex flex-col gap-2 z-50">
+    <div className="absolute bottom-5 right-5 z-50 flex flex-col gap-2">
       {props.errors.map((err) => (
         <Error error={err} setErrors={props.setErrors} key={err} />
       ))}
@@ -146,11 +172,43 @@ function Error(props: {
 
 function Modal(props: React.PropsWithChildren) {
   return createPortal(
-    <div className="absolute left-0 top-0 w-full h-full bg-black bg-opacity-30 flex justify-center items-center z-40">
-      <div className="rounded-2xl bg-slate-700 dark:text-white p-5">
+    <div className="absolute left-0 top-0 z-40 flex h-full w-full items-center justify-center bg-black bg-opacity-30">
+      <div className="rounded-2xl bg-slate-700 p-5 dark:text-white">
         {props.children}
       </div>
     </div>,
     document.querySelector("#overlay")!
+  );
+}
+
+function Board({
+  board,
+  playHandler,
+  playingPlayer,
+}: {
+  board: string[];
+  playHandler: (index: number) => void;
+  playingPlayer: "Your turn" | "Other player's turn";
+}) {
+  return (
+    <div className="grid grid-cols-3 grid-rows-3 text-white">
+      {board.map((field, index) => (
+        <button
+          className="h-10 w-10 border-2 border-white p-3"
+          key={index}
+          onClick={(event) => {
+            if (
+              event.currentTarget.innerHTML !== "" ||
+              playingPlayer !== "Your turn"
+            )
+              return;
+            playHandler(+event.currentTarget.dataset.index!);
+          }}
+          data-index={index}
+        >
+          {field}
+        </button>
+      ))}
+    </div>
   );
 }

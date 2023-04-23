@@ -31,6 +31,7 @@ func (g *game) start() {
 		msg, err := g.players[0].read()
 		if err != nil {
 			// TODO: handle properly
+			errorLog.Println("Ready", err)
 			g.players[0].send(JsonMessage{Message: "Invalid json", Typ: ErrorMessage})
 			continue
 		}
@@ -44,6 +45,7 @@ func (g *game) start() {
 		msg, err := g.players[1].read()
 		if err != nil {
 			// TODO: handle properly
+			errorLog.Println("Ready", err)
 			g.players[1].send(JsonMessage{Message: "Invalid json", Typ: ErrorMessage})
 			continue
 		}
@@ -126,6 +128,8 @@ func (g *game) start() {
 					// TODO
 				}
 			}
+
+			infoLog.Printf("Game %v ended", g.id)
 
 			delete(games, g.id)
 			return
