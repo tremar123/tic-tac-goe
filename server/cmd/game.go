@@ -18,11 +18,13 @@ func (g *game) start() {
 	g.board = []string{
 		"", "", "",
 		"", "", "",
-		"", "", ""}
+		"", "", "",
+	}
 
 	err := g.messageAllPlayers(JsonMessage{Message: "Get ready!", Typ: GetReadyMessage})
 	if err != nil {
-		// TODO
+		g.end()
+		return
 	}
 
 	// is there a better way to recieve msg from both?
@@ -30,29 +32,33 @@ func (g *game) start() {
 	for {
 		msg, err := g.players[0].read()
 		if err != nil {
-			// TODO: handle properly
-			errorLog.Println("Ready", err)
-			g.players[0].send(JsonMessage{Message: "Invalid json", Typ: ErrorMessage})
-			continue
+			g.end()
+			return
 		}
 		if msg.Message == "Ready" {
 			break
 		}
 		g.players[0].send(JsonMessage{Message: "Enter \"Ready\"", Typ: ErrorMessage})
+		if err != nil {
+			g.end()
+			return
+		}
 	}
 
 	for {
 		msg, err := g.players[1].read()
 		if err != nil {
-			// TODO: handle properly
-			errorLog.Println("Ready", err)
-			g.players[1].send(JsonMessage{Message: "Invalid json", Typ: ErrorMessage})
-			continue
+			g.end()
+			return
 		}
 		if msg.Message == "Ready" {
 			break
 		}
 		g.players[0].send(JsonMessage{Message: "Enter \"Ready\"", Typ: ErrorMessage})
+		if err != nil {
+			g.end()
+			return
+		}
 	}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -72,19 +78,20 @@ func (g *game) start() {
 	for {
 		err := g.players[playing].send(JsonMessage{Message: "Your turn", Typ: TurnMessage})
 		if err != nil {
-			// TODO
+			g.end()
+			return
 		}
 		err = g.players[waiting].send(JsonMessage{Message: "Other player's turn", Typ: TurnMessage})
 		if err != nil {
-			// TODO
+			g.end()
+			return
 		}
 
 		for {
 			msg, err := g.players[playing].read()
 			if err != nil {
-				// TODO handle properly
-				g.players[playing].send(JsonMessage{Message: "There was an error, try again", Typ: ErrorMessage})
-				continue
+				g.end()
+				return
 			}
 
 			play := int(msg.Message.(float64))
@@ -109,39 +116,47 @@ func (g *game) start() {
 			if winner {
 				err = g.players[playing].send(JsonMessage{Message: "You won", Typ: ResultMessage})
 				if err != nil {
-					// TODO
+					g.end()
+					return
 				}
 				err = g.players[waiting].send(JsonMessage{Message: "You lost", Typ: ResultMessage})
 				if err != nil {
-					// TODO
+					g.end()
+					return
 				}
 			} else {
 				err = g.messageAllPlayers(JsonMessage{Message: "Draw", Typ: ResultMessage})
 				if err != nil {
-					// TODO
+					g.end()
+					return
 				}
 			}
 
-			for _, player := range g.players {
-				err = player.closeConnection()
-				if err != nil {
-					// TODO
-				}
-			}
-
-			infoLog.Printf("Game %v ended", g.id)
-
-			delete(games, g.id)
+			g.end()
 			return
 		}
 
 		err = g.messageAllPlayers(JsonMessage{Message: g.board, Typ: BoardMessage})
 		if err != nil {
-			// TODO
+			g.end()
+			return
 		}
 
 		playing, waiting = waiting, playing
 	}
+}
+
+func (g *game) end() {
+	for _, player := range g.players {
+		err := player.closeConnection()
+		if err != nil {
+			errorLog.Println(err)
+		}
+	}
+
+	infoLog.Printf("Game %v ended", g.id)
+
+	delete(games, g.id)
 }
 
 func (g *game) messageAllPlayers(msg JsonMessage) error {
@@ -154,6 +169,7 @@ func (g *game) messageAllPlayers(msg JsonMessage) error {
 	return nil
 }
 
+// TODO: there definitly is better solution and its here: react.dev, but I am happy I solved it myself
 func (g *game) checkGameEnd(playing int) (end bool, winner bool) {
 	indexes := []int{}
 	occupiedFields := 0

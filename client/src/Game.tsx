@@ -12,12 +12,18 @@ export function GamePage({
   const ws = useRef<WebSocket | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const [modal, setModal] = useState<string | null>(null);
+  const [modal, _setModal] = useState<string | null>(null);
+  const modalRef = useRef(modal);
   const [readyButton, setReadyButton] = useState(false);
   const [board, setBoard] = useState<string[] | null>(null);
   const [playingPlayer, setPlayingPlayer] = useState<
     "Your turn" | "Other player's turn" | null
   >(null);
+
+  function setModal(value: string | null) {
+    modalRef.current = value;
+    _setModal(value);
+  }
 
   useEffect(() => {
     const conn = new WebSocket("ws://localhost:4000/ws?game_id=" + gameId);
@@ -39,21 +45,20 @@ export function GamePage({
           // @ts-ignore
           setPlayingPlayer(data.message);
 
-          // BUG: why is this always null?
-          console.log("modal:", modal);
           // if game did not start yet
-          if (modal) {
+          if (modalRef.current) {
             setModal(null);
             setBoard(Array(9).fill(""));
           }
           break;
 
         case "board":
-          setBoard(JSON.parse(data.message));
+          // @ts-ignore - how to do types on fetch?
+          setBoard(data.message);
           break;
 
         case "result":
-          // TODO: show results, end game
+          // TODO: show results, end game, go back home
           setModal(data.message);
           break;
 
@@ -126,8 +131,8 @@ function ErrorsList(props: {
 }) {
   return createPortal(
     <div className="absolute bottom-5 right-5 z-50 flex flex-col gap-2">
-      {props.errors.map((err) => (
-        <Error error={err} setErrors={props.setErrors} key={err} />
+      {props.errors.map((err, index) => (
+        <Error error={err} setErrors={props.setErrors} key={index} />
       ))}
     </div>,
     document.querySelector("#errors")!
@@ -191,10 +196,10 @@ function Board({
   playingPlayer: "Your turn" | "Other player's turn";
 }) {
   return (
-    <div className="grid grid-cols-3 grid-rows-3 text-white">
+    <div className="grid grid-cols-3 grid-rows-3 text-white pt-28 w-fit mx-auto">
       {board.map((field, index) => (
         <button
-          className="h-10 w-10 border-2 border-white p-3"
+          className="h-20 w-20 border-2 border-white p-3 text-6xl"
           key={index}
           onClick={(event) => {
             if (
