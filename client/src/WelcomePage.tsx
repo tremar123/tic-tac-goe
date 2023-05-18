@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+const url = `${import.meta.env.PROD ? "https://" : "http://"}${
+  import.meta.env.VITE_API_URL
+}`;
+
 export function WelcomePage({
   setGame,
 }: {
@@ -9,8 +13,10 @@ export function WelcomePage({
   const [gameIdInput, setGameIdInput] = useState("");
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
+  console.log(url);
+
   function createGameHandler() {
-    fetch("http://localhost:4000/new-game", {
+    fetch(`${url}/api/new-game`, {
       method: "POST",
     }).then((response) => {
       response.json().then((body) => {
@@ -32,14 +38,12 @@ export function WelcomePage({
       {gameId ? (
         <div>
           <span className="mb-4 block dark:text-white">
-            http://localhost:3000/?game_id=
+            {url}/?game_id=
             <span className="text-blue-600">{gameId}</span>
           </span>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(
-                "http://localhost:3000/?game_id=" + gameId
-              );
+              navigator.clipboard.writeText(`${url}/?game_id=` + gameId);
               setCopiedToClipboard(true);
               setTimeout(() => setCopiedToClipboard(false), 1000);
             }}

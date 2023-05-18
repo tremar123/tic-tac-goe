@@ -1,0 +1,22 @@
+[Unit]
+Description=Tic Tac Goe server
+
+# Wait until network is "up"
+After=network-online.target
+Wants=network-online.target
+
+# if restarted more than 5 times in 600 second, don't permit to start
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=hobbit
+Group=hobbit
+ExecStart=/home/hobbit/tic-tac-goe/server -port=4000 -env=production
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

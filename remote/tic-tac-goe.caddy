@@ -1,0 +1,3 @@
+tic-tac-goe.marcelmalych.com {
+    root * /home/hobbit/tic-tac-goe/client/
+}

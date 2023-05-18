@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base32"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,19 +16,30 @@ import (
 
 const MAX_PLAYERS = 2
 
+const DEV_ENV = "development"
+const PROD_ENV = "production"
+
 var (
 	games   = make(map[string]*game)
 	gamesMu = sync.Mutex{}
 
 	infoLog  = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	config = struct {
+		port       int
+		enviroment string
+	}{}
 )
 
 func main() {
+	flag.IntVar(&config.port, "port", 4000, "Server listening port")
+	flag.StringVar(&config.enviroment, "env", DEV_ENV, "development | production")
+
 	router := http.NewServeMux()
 
-	router.Handle("/new-game", CORS(newGameHandler))
-	router.Handle("/ws", CORS(wsHandler))
+	router.Handle("/api/new-game", CORS(newGameHandler))
+	router.Handle("/api/ws", CORS(wsHandler))
 
 	infoLog.Println("starting server on port 4000")
 	err := http.ListenAndServe(":4000", router)
@@ -90,9 +102,15 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"localhost:3000"},
-	})
+	var wsOptions *websocket.AcceptOptions = nil
+
+	if config.enviroment == DEV_ENV {
+		wsOptions = &websocket.AcceptOptions{
+			OriginPatterns: []string{"localhost:3000"},
+		}
+	}
+
+	ws, err := websocket.Accept(w, r, wsOptions)
 	if err != nil {
 		serverErrorResponse(w, fmt.Errorf("could not upgrade connection"))
 		return

@@ -6,6 +6,10 @@ type Message = {
   type: "board" | "error" | "turn" | "result" | "ready" | "info";
 };
 
+const wsUrl = `${import.meta.env.PROD ? "wss://" : "ws://"}${
+  import.meta.env.VITE_API_URL
+}`;
+
 export function GamePage({
   gameId,
 }: React.PropsWithChildren<{ gameId: string }>) {
@@ -26,7 +30,7 @@ export function GamePage({
   }
 
   useEffect(() => {
-    const conn = new WebSocket("ws://localhost:4000/ws?game_id=" + gameId);
+    const conn = new WebSocket(`${wsUrl}/api/ws?game_id=` + gameId);
 
     conn.addEventListener("message", (event) => {
       const data = JSON.parse(event.data) as Message;
