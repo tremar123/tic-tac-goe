@@ -1,8 +1,14 @@
 .PHONY: build
-build:
+build: build/server build/client
+
+.PHONY: build/server
+build/server:
 	@echo Building server...
 	$(MAKE) -C server build
 	@echo Done building server
+
+.PHONY: build/client
+build/client:
 	@echo Building client...
 	cd client && VITE_API_URL=$(URL) npm run build
 	@echo Done building client

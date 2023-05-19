@@ -1,3 +1,6 @@
 tic-tac-goe.marcelmalych.com {
-    root * /home/hobbit/tic-tac-goe/client/
+    root * /home/hobbit/tic-tac-goe/client
+    file_server
+
+    reverse_proxy /api/* localhost:4000
 }

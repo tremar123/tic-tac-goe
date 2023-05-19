@@ -19,4 +19,4 @@ audit:
 
 .PHONY: build
 build:
-	go build -ldflags="-s" -o=./bin/app ./cmd/
+	CGO_ENABLED=0 go build -ldflags="-s" -o=./bin/app ./cmd/
