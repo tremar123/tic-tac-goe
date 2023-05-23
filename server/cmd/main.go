@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"nhooyr.io/websocket"
 )
@@ -40,6 +41,8 @@ func main() {
 
 	router.Handle("/api/new-game", CORS(newGameHandler))
 	router.Handle("/api/ws", CORS(wsHandler))
+
+	go gamesCleanup()
 
 	infoLog.Println("starting server on port 4000")
 	err := http.ListenAndServe(":4000", router)
@@ -73,8 +76,10 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 	gamesMu.Lock()
 
 	games[id] = &game{
-		players: make([]player, 0, MAX_PLAYERS),
-		id:      id,
+		players:   make([]player, 0, MAX_PLAYERS),
+		id:        id,
+		state:     CREATED_STATE,
+		timestamp: time.Now(),
 	}
 
 	gamesMu.Unlock()
@@ -129,6 +134,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		infoLog.Printf("Game %v started", game.id)
 	} else {
 		p.send(JsonMessage{Message: "waiting for other player", Typ: InfoMessage})
+		game.state = WAITING_STATE
+		game.timestamp = time.Now()
 	}
 }
 

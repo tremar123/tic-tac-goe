@@ -38,12 +38,12 @@ export function WelcomePage({
       {gameId ? (
         <div>
           <span className="mb-4 block dark:text-white">
-            {url}/?game_id=
+            {import.meta.env.PROD ? url : "http://localhost:3000"}/?game_id=
             <span className="text-blue-600">{gameId}</span>
           </span>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(`${url}/?game_id=` + gameId);
+              navigator.clipboard.writeText(`${import.meta.env.PROD ? url : "http://localhost:3000"}/?game_id=` + gameId);
               setCopiedToClipboard(true);
               setTimeout(() => setCopiedToClipboard(false), 1000);
             }}

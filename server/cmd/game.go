@@ -7,10 +7,20 @@ import (
 
 const BOARD_LENGTH = 9
 
+const (
+	CREATED_STATE = iota
+	WAITING_STATE
+	GETTING_READY_STATE
+	PLAYING_STATE
+)
+
 type game struct {
-	id      string
-	players []player
-	board   []string
+	id        string
+	players   []player
+	board     []string
+	turn      int8
+	state     int
+	timestamp time.Time
 }
 
 // TODO: when one player loses connection, end game and clear it or wait for him to connect back
@@ -20,6 +30,11 @@ func (g *game) start() {
 		"", "", "",
 		"", "", "",
 	}
+
+	g.state = GETTING_READY_STATE
+	g.timestamp = time.Now()
+
+	g.turn = 0
 
 	err := g.messageAllPlayers(JsonMessage{Message: "Get ready!", Typ: GetReadyMessage})
 	if err != nil {
@@ -60,6 +75,9 @@ func (g *game) start() {
 			return
 		}
 	}
+
+	g.state = PLAYING_STATE
+	g.timestamp = time.Now()
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -111,9 +129,23 @@ func (g *game) start() {
 			break
 		}
 
-		end, winner := g.checkGameEnd(playing)
+		g.turn++
+
+		err = g.messageAllPlayers(JsonMessage{Message: g.board, Typ: BoardMessage})
+		if err != nil {
+			g.end()
+			return
+		}
+
+		end, winner, pattern := g.checkGameEnd(playing)
 		if end {
 			if winner {
+				err = g.messageAllPlayers(JsonMessage{Message: pattern, Typ: WinningPatternMessage})
+				if err != nil {
+					g.end()
+					return
+				}
+
 				err = g.players[playing].send(JsonMessage{Message: "You won", Typ: ResultMessage})
 				if err != nil {
 					g.end()
@@ -136,12 +168,6 @@ func (g *game) start() {
 			return
 		}
 
-		err = g.messageAllPlayers(JsonMessage{Message: g.board, Typ: BoardMessage})
-		if err != nil {
-			g.end()
-			return
-		}
-
 		playing, waiting = waiting, playing
 	}
 }
@@ -150,13 +176,15 @@ func (g *game) end() {
 	for _, player := range g.players {
 		err := player.closeConnection()
 		if err != nil {
-			errorLog.Println(err)
+			errorLog.Printf("game %q - %v", g.id, err)
 		}
 	}
 
 	infoLog.Printf("Game %v ended", g.id)
 
+	gamesMu.Lock()
 	delete(games, g.id)
+	gamesMu.Unlock()
 }
 
 func (g *game) messageAllPlayers(msg JsonMessage) error {
@@ -169,50 +197,18 @@ func (g *game) messageAllPlayers(msg JsonMessage) error {
 	return nil
 }
 
-// TODO: there definitly is better solution and its here: react.dev, but I am happy I solved it myself
-func (g *game) checkGameEnd(playing int) (end bool, winner bool) {
-	indexes := []int{}
-	occupiedFields := 0
-
-	// NOTE: can I keep track of these while player makes play?
-	for i, field := range g.board {
-		if field != "" {
-			occupiedFields++
-		}
-
-		if field == g.players[playing].symbol {
-			indexes = append(indexes, i)
-		}
-	}
-
-patternsLoop:
+func (g *game) checkGameEnd(playing int) (end bool, winner bool, pattern []int) {
 	for _, pattern := range winningPatterns {
-		fields := make(map[int]bool)
-
-		for _, num := range pattern {
-			fields[num] = false
+		if g.board[pattern[0]] != "" && g.board[pattern[1]] == g.board[pattern[0]] && g.board[pattern[2]] == g.board[pattern[0]] {
+			return true, true, pattern
 		}
-
-		for _, idx := range indexes {
-			_, ok := fields[idx]
-			if ok {
-				fields[idx] = true
-			}
-		}
-
-		for _, field := range fields {
-			if !field {
-				continue patternsLoop
-			}
-		}
-		return true, true
 	}
 
-	if occupiedFields == BOARD_LENGTH {
-		return true, false
+	if g.turn == BOARD_LENGTH {
+		return true, false, nil
 	}
 
-	return false, false
+	return false, false, nil
 }
 
 var winningPatterns = [][]int{

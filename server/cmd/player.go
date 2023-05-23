@@ -13,12 +13,13 @@ type JsonMessage struct {
 }
 
 const (
-	BoardMessage    = "board"
-	ErrorMessage    = "error"
-	TurnMessage     = "turn"
-	GetReadyMessage = "ready"
-	ResultMessage   = "result"
-	InfoMessage     = "info"
+	BoardMessage          = "board"
+	ErrorMessage          = "error"
+	TurnMessage           = "turn"
+	GetReadyMessage       = "ready"
+	ResultMessage         = "result"
+	InfoMessage           = "info"
+	WinningPatternMessage = "pattern"
 )
 
 type player struct {
