@@ -61,7 +61,7 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		serverErrorResponse(w, err)
+		serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -86,10 +86,10 @@ func newGameHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = writeJSON(w, http.StatusCreated, envelope{"game_id": id}, nil)
 	if err != nil {
-		serverErrorResponse(w, err)
+		serverErrorResponse(w, r, err)
 	}
 
-	infoLog.Println("New game created - ", id)
+	infoLog.Println("New game created - ", id, r.Header.Get("X-Forwarded-For"))
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +117,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Accept(w, r, wsOptions)
 	if err != nil {
-		serverErrorResponse(w, fmt.Errorf("could not upgrade connection"))
+		serverErrorResponse(w, r, fmt.Errorf("could not upgrade connection"))
 		return
 	}
 
@@ -127,7 +127,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	game.players = append(game.players, p)
 
-	infoLog.Printf("Player %v joined game - %v", len(game.players), game.id)
+	infoLog.Printf("Player %v joined game - %v - %v", len(game.players), game.id, r.Header.Get("X-Forwarded-For"))
 
 	if len(game.players) == MAX_PLAYERS {
 		go game.start()

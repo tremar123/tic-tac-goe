@@ -16,7 +16,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <DarkModeSwitch className="absolute right-5 top-5 text-black dark:text-white" />
-      {gameId === null ? <WelcomePage setGame={setGameId} /> : <GamePage gameId={gameId} />}
+      {gameId === null ? <WelcomePage setGame={setGameId} /> : <GamePage gameId={gameId} setGame={setGameId} />}
     </ThemeProvider>
   );
 }

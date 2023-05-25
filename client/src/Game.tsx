@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 type Message = {
   message: string;
-  type: "board" | "error" | "turn" | "result" | "ready" | "info";
+  type: "board" | "error" | "turn" | "result" | "ready" | "info" | "pattern";
 };
 
 const wsUrl = `${import.meta.env.PROD ? "wss://" : "ws://"}${
@@ -12,14 +12,20 @@ const wsUrl = `${import.meta.env.PROD ? "wss://" : "ws://"}${
 
 export function GamePage({
   gameId,
-}: React.PropsWithChildren<{ gameId: string }>) {
+  setGame,
+}: React.PropsWithChildren<{
+  gameId: string;
+  setGame: React.Dispatch<React.SetStateAction<string | null>>;
+}>) {
   const ws = useRef<WebSocket | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
 
   const [modal, _setModal] = useState<string | null>(null);
   const modalRef = useRef(modal);
   const [readyButton, setReadyButton] = useState(false);
+  const [goBackButton, setGoBackButton] = useState(false);
   const [board, setBoard] = useState<string[] | null>(null);
+  const [winningPattern, setWinningPattern] = useState<number[] | null>(null);
   const [playingPlayer, setPlayingPlayer] = useState<
     "Your turn" | "Other player's turn" | null
   >(null);
@@ -34,15 +40,14 @@ export function GamePage({
 
     conn.addEventListener("message", (event) => {
       const data = JSON.parse(event.data) as Message;
-      console.log(data);
       switch (data.type) {
         case "info":
           setModal(data.message);
           break;
 
         case "ready":
-          setModal(data.message);
           setReadyButton(true);
+          setModal(data.message);
           break;
 
         case "turn":
@@ -61,9 +66,16 @@ export function GamePage({
           setBoard(data.message);
           break;
 
+        case "pattern":
+          // @ts-ignore
+          setWinningPattern(data.message);
+          break;
+
         case "result":
-          // TODO: show results, end game, go back home
           setModal(data.message);
+          setGoBackButton(true);
+          ws.current = null;
+          window.history.replaceState({}, document.title, "/");
           break;
 
         case "error":
@@ -79,14 +91,16 @@ export function GamePage({
     };
   }, [gameId]);
 
+  function goBackHandler() {
+    setGame(null);
+  }
+
   function readyHandler() {
-    console.log(ws.current);
     ws.current?.send(
       JSON.stringify({
         message: "Ready",
       })
     );
-    console.log(modal);
     setModal("Waiting for other player to get ready");
     setReadyButton(false);
   }
@@ -104,14 +118,14 @@ export function GamePage({
       {modal && (
         <Modal>
           <p>{modal}</p>
-          {readyButton && (
+          {readyButton || goBackButton ? (
             <button
-              onClick={readyHandler}
-              className="mx-auto block rounded-xl border-2 border-sky-900 bg-sky-300 p-1  dark:bg-slate-900 dark:text-white dark:hover:bg-slate-900"
+              onClick={readyButton ? readyHandler : goBackHandler}
+              className="mx-auto block rounded-xl border-2 border-sky-900 bg-blue-500 p-1 text-xl dark:bg-slate-900 px-5 text-white dark:hover:bg-slate-900"
             >
-              Ready
+              {readyButton ? "Ready" : "Go back"}
             </button>
-          )}
+          ) : null}
         </Modal>
       )}
       {errors.length !== 0 && (
@@ -120,6 +134,7 @@ export function GamePage({
       <h1 className="text-white">{playingPlayer}</h1>
       {board && (
         <Board
+          winningPattern={winningPattern}
           board={board}
           playHandler={playHandler}
           playingPlayer={playingPlayer!}
@@ -181,8 +196,8 @@ function Error(props: {
 
 function Modal(props: React.PropsWithChildren) {
   return createPortal(
-    <div className="absolute left-0 top-0 z-40 flex h-full w-full items-center justify-center bg-black bg-opacity-30">
-      <div className="rounded-2xl bg-slate-700 p-5 dark:text-white">
+    <div className="absolute left-0 top-0 z-40 flex h-full w-full items-center justify-center bg-white dark:bg-black !bg-opacity-30">
+      <div className="rounded-2xl bg-sky-300 dark:bg-slate-700 p-8 dark:text-white text-2xl fotn-bold flex flex-col gap-8 shadow text-center">
         {props.children}
       </div>
     </div>,
@@ -194,16 +209,61 @@ function Board({
   board,
   playHandler,
   playingPlayer,
+  winningPattern,
 }: {
   board: string[];
   playHandler: (index: number) => void;
   playingPlayer: "Your turn" | "Other player's turn";
+  winningPattern: number[] | null;
 }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (!winningPattern) {
+      return;
+    }
+
+    const firstField = document.querySelector(
+      `[data-index="${winningPattern[0]}"]`
+    )!;
+    const lastField = document.querySelector(
+      `[data-index="${winningPattern[2]}"]`
+    )!;
+
+    const firstFieldRect = firstField.getBoundingClientRect();
+    const lastFieldRect = lastField.getBoundingClientRect();
+
+    const firstFieldCenter = {
+      x: firstFieldRect.x + firstFieldRect.width / 2,
+      y: firstFieldRect.y + firstFieldRect.height / 2,
+    };
+    const lastFieldCenter = {
+      x: lastFieldRect.x + lastFieldRect.width / 2,
+      y: lastFieldRect.y + lastFieldRect.height / 2,
+    };
+
+    window.requestAnimationFrame(draw);
+
+    function draw() {
+      const canvas = canvasRef.current!;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const context = canvas.getContext("2d")!;
+      context.strokeStyle = "blue";
+      context.lineWidth = 4;
+
+      context.beginPath();
+      context.moveTo(firstFieldCenter.x, firstFieldCenter.y);
+      context.lineTo(lastFieldCenter.x, lastFieldCenter.y);
+      context.stroke();
+    }
+  }, [winningPattern]);
+
   return (
-    <div className="grid grid-cols-3 grid-rows-3 text-white pt-28 w-fit mx-auto">
+    <div className="grid grid-cols-3 grid-rows-3 text-black dark:text-white border-2 border-black dark:border-white h-fit mt-28 w-fit mx-auto">
       {board.map((field, index) => (
         <button
-          className="h-20 w-20 border-2 border-white p-3 text-6xl"
+          className="h-20 w-20 border-2 dark:border-white border-black p-3 text-6xl"
           key={index}
           onClick={(event) => {
             if (
@@ -218,6 +278,10 @@ function Board({
           {field}
         </button>
       ))}
+      <canvas
+        ref={canvasRef}
+        className="h-full w-full absolute pointer-events-none left-0 top-0"
+      />
     </div>
   );
 }

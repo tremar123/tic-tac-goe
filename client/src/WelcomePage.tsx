@@ -13,8 +13,6 @@ export function WelcomePage({
   const [gameIdInput, setGameIdInput] = useState("");
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
-  console.log(url);
-
   function createGameHandler() {
     fetch(`${url}/api/new-game`, {
       method: "POST",
@@ -37,13 +35,17 @@ export function WelcomePage({
     <main className="flex h-screen flex-col items-center justify-center gap-12">
       {gameId ? (
         <div>
-          <span className="mb-4 block dark:text-white">
+          <span className="mb-4 block dark:text-white text-center">
             {import.meta.env.PROD ? url : "http://localhost:3000"}/?game_id=
             <span className="text-blue-600">{gameId}</span>
           </span>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(`${import.meta.env.PROD ? url : "http://localhost:3000"}/?game_id=` + gameId);
+              navigator.clipboard.writeText(
+                `${
+                  import.meta.env.PROD ? url : "http://localhost:3000"
+                }/?game_id=` + gameId
+              );
               setCopiedToClipboard(true);
               setTimeout(() => setCopiedToClipboard(false), 1000);
             }}

@@ -13,8 +13,8 @@ func errorResponse(w http.ResponseWriter, status int, message error) {
 	}
 }
 
-func serverErrorResponse(w http.ResponseWriter, message error) {
-	errorLog.Println(message.Error())
+func serverErrorResponse(w http.ResponseWriter, r *http.Request, message error) {
+	errorLog.Println(message.Error(), r.Header.Get("X-Forwarded-For"))
 	errorResponse(w, http.StatusInternalServerError, message)
 }
 
@@ -43,7 +43,6 @@ func gamesCleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	for range ticker.C {
-		infoLog.Println("running cleanup")
 		for _, game := range games {
 			switch {
 			case game.state == CREATED_STATE && timeDiff(game.timestamp, 10*time.Minute):
